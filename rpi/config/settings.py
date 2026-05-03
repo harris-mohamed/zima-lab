@@ -11,5 +11,13 @@ class Settings(BaseSettings):
     api_port: int = 8000
     usb_cam_index: int = 0
 
+    kasa_host: str = ""
+    kasa_poll_interval: int = 10  # seconds
+
+    influx_url: str = "http://localhost:8086"
+    influx_token: str = ""
+    influx_org: str = "zimalab"
+    influx_bucket: str = "power"
+
 
 settings = Settings()

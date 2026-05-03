@@ -3,14 +3,19 @@ import { useEffect, useState } from 'react'
 import { SensorCard } from './components/SensorCard'
 import { SensorChart } from './components/SensorChart'
 import { CameraFeed } from './components/CameraFeed'
+import { PowerStrip } from './components/PowerStrip'
 import { useSensorWebSocket } from './hooks/useSensorWebSocket'
 import { useSensorHistory } from './hooks/useSensorHistory'
+import { usePowerLatest } from './hooks/usePowerLatest'
+import { usePowerHistory } from './hooks/usePowerHistory'
 import type { SensorReading } from './types/sensors'
 
 export default function App() {
   const { latest, history: liveHistory } = useSensorWebSocket()
   const seedHistory = useSensorHistory(60)
   const [history, setHistory] = useState<SensorReading[]>([])
+  const outlets = usePowerLatest()
+  const powerHistory = usePowerHistory(60)
 
   useEffect(() => {
     if (seedHistory.length > 0 && liveHistory.length === 0) {
@@ -60,6 +65,8 @@ export default function App() {
           <SensorChart data={history} dataKey="water_temp" label="Water Temp" unit="°C" color="#f97316" />
           <SensorChart data={history} dataKey="humidity" label="Humidity" unit="%" color="#c084fc" />
         </div>
+
+        <PowerStrip outlets={outlets} history={powerHistory} />
       </div>
     </div>
   )
