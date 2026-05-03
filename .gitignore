@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# uv
+rpi/.python-version
+
+# Environment
+.env
+rpi/.env
+
+# Runtime data
+data/
+*.db
+
+# Arduino build artifacts
+arduino/**/*.elf
+arduino/**/*.hex
+arduino/**/.cache/
+arduino/**/build/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
