@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------
        HumiditySensor
-       DHT22 air temperature and humidity driver
+       DHT11 air temperature and humidity driver
    ---------------------------------------------------------- */
 #include "humidity_sensor.h"
 
@@ -10,7 +10,7 @@
    Inputs:        pin — digital data pin number
    Outputs:       None
    ---------------------------------------------------------- */
-HumiditySensor::HumiditySensor(uint8_t pin) : _dht(pin, DHT22) {}
+HumiditySensor::HumiditySensor(uint8_t pin) : _dht(pin, DHT11) {}
 
 /* ----------------------------------------------------------
    Function:      begin

@@ -1,6 +1,6 @@
 /* ----------------------------------------------------------
        HumiditySensor
-       DHT22 air temperature and humidity driver
+       DHT11 air temperature and humidity driver
    ---------------------------------------------------------- */
 #pragma once
 #include <Arduino.h>

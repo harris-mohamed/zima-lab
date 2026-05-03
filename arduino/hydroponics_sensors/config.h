@@ -10,7 +10,7 @@
 #define PH_PIN            A0
 #define TDS_PIN           A1
 #define WATER_TEMP_PIN    2    // DS18B20 OneWire data
-#define DHT_PIN           3    // DHT22 data
+#define DHT_PIN           3    // DHT11 data
 #define TRIG_PIN          4    // HC-SR04 trigger
 #define ECHO_PIN          5    // HC-SR04 echo
 
