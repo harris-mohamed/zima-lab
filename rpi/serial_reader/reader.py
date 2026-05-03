@@ -1,10 +1,12 @@
 import asyncio
+import dataclasses
 import logging
+from datetime import datetime, timezone
 
 import serial
 
 from config.settings import settings
-from db.writer import write_sensor_reading
+from db.writer import write_plant_readings
 from serial_reader.parser import parse_line
 
 logger = logging.getLogger(__name__)
@@ -26,14 +28,21 @@ async def run_serial_reader(session_factory, hub) -> None:
 
             raw = await loop.run_in_executor(None, ser.readline)
             line = raw.decode("utf-8", errors="ignore")
-            reading = parse_line(line)
-            if reading is None:
+            readings = parse_line(line)
+            if readings is None:
                 continue
 
             async with session_factory() as session:
-                await write_sensor_reading(session, reading)
+                await write_plant_readings(session, readings)
 
-            await hub.broadcast(reading)
+            # Broadcast as a frame: shared fields + per-plant list
+            frame = {
+                "recorded_at": datetime.now(timezone.utc).isoformat(),
+                "air_temp": readings[0].air_temp,
+                "humidity": readings[0].humidity,
+                "plants": [dataclasses.asdict(r) for r in readings],
+            }
+            await hub.broadcast(frame)
 
         except serial.SerialException as exc:
             logger.warning("Serial error: %s — retrying in 5s", exc)

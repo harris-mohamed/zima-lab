@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import type { SensorReading } from '../types/sensors'
+import type { PlantReading } from '../types/sensors'
 
-export function useSensorHistory(minutes = 60): SensorReading[] {
-  const [history, setHistory] = useState<SensorReading[]>([])
+export function useSensorHistory(minutes = 60): PlantReading[] {
+  const [history, setHistory] = useState<PlantReading[]>([])
 
   useEffect(() => {
     fetch(`/api/sensors/history?minutes=${minutes}`)
       .then((r) => r.json())
-      .then((data: SensorReading[]) => setHistory(data))
+      .then((data: PlantReading[]) => setHistory(data))
       .catch(console.error)
   }, [minutes])
 

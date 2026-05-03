@@ -73,6 +73,34 @@ body {
   flex-wrap: wrap;
 }
 
+/* Plant grid */
+.plant-grid {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plant-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.plant-row__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  min-width: 52px;
+}
+
+.plant-row__cards {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 /* Charts take remaining space */
 .charts {
   grid-column: 1 / -1;
