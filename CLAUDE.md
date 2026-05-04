@@ -2,6 +2,20 @@
 
 Automated hydroponics monitoring system. Arduino MEGA reads analog sensors and sends JSON over serial to a Raspberry Pi, which stores data in PostgreSQL and serves a React dashboard.
 
+## Architecture
+
+```
+[Arduino MEGA] ──serial──┐
+[Kasa plugs]   ──network─┼──► rpi/
+[Camera]       ──USB──────┘     ├─ serial_reader/  →  db/      →  PostgreSQL
+                                ├─ kasa/           →  influx/  →  InfluxDB
+                                ├─ camera/            (MJPEG streams)
+                                └─ api/               (FastAPI :8000)
+                                         │ HTTP + WebSocket
+                                         ▼
+                                    frontend/  (React/Vite :5173)
+```
+
 ## Directory Layout
 
 ```

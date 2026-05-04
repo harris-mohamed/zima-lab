@@ -2,8 +2,8 @@
        PhSensor
        pH probe driver (analog, 2-point calibrated)
    ---------------------------------------------------------- */
-#include "ph_sensor.h"
-#include "../config.h"
+#include "sensors/ph_sensor.h"
+#include "config.h"
 
 /* ----------------------------------------------------------
    Function:      PhSensor

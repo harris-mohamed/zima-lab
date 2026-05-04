@@ -2,7 +2,7 @@
        HumiditySensor
        DHT11 air temperature and humidity driver
    ---------------------------------------------------------- */
-#include "humidity_sensor.h"
+#include "sensors/humidity_sensor.h"
 
 /* ----------------------------------------------------------
    Function:      HumiditySensor

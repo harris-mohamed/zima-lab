@@ -2,8 +2,8 @@
        TdsSensor
        TDS probe driver (analog, temperature-compensated)
    ---------------------------------------------------------- */
-#include "tds_sensor.h"
-#include "../config.h"
+#include "sensors/tds_sensor.h"
+#include "config.h"
 
 /* ----------------------------------------------------------
    Function:      TdsSensor

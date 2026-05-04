@@ -2,7 +2,7 @@
        WaterLevelSensor
        HC-SR04 ultrasonic water level driver
    ---------------------------------------------------------- */
-#include "water_level_sensor.h"
+#include "sensors/water_level_sensor.h"
 
 /* ----------------------------------------------------------
    Function:      WaterLevelSensor
