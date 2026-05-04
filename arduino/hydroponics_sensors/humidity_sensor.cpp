@@ -29,11 +29,17 @@ void HumiditySensor::begin() {
    Outputs:       AirReading struct with temp_c and humidity fields;
                   either field is -1.0 if the sensor returns NaN
    ---------------------------------------------------------- */
+static inline bool is_nan(float v) {
+  uint32_t bits;
+  memcpy(&bits, &v, sizeof(bits));
+  return (bits & 0x7FFFFFFF) > 0x7F800000;
+}
+
 AirReading HumiditySensor::read() {
   AirReading r;
   r.temp_c   = _dht.readTemperature();
   r.humidity = _dht.readHumidity();
-  if (isnan(r.temp_c))   r.temp_c   = -1.0f;
-  if (isnan(r.humidity)) r.humidity = -1.0f;
+  if (is_nan(r.temp_c))   r.temp_c   = -1.0f;
+  if (is_nan(r.humidity)) r.humidity = -1.0f;
   return r;
 }
