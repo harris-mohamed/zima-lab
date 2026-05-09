@@ -1,52 +1,35 @@
 import './styles/App.css'
 import { useEffect, useState } from 'react'
 import { SensorCard } from './components/SensorCard'
-import { PlantRow } from './components/PlantRow'
-import { MultiLineChart } from './components/MultiLineChart'
-import { CameraFeed } from './components/CameraFeed'
-import { PowerStrip } from './components/PowerStrip'
+import { SensorChart } from './components/SensorChart'
 import { useSensorWebSocket } from './hooks/useSensorWebSocket'
 import { useSensorHistory } from './hooks/useSensorHistory'
-import { usePowerLatest } from './hooks/usePowerLatest'
-import { usePowerHistory } from './hooks/usePowerHistory'
 import type { PlantReading } from './types/sensors'
-
-const NUM_PLANTS = 5
 
 export default function App() {
   const { frame, historyByPlant: liveHistory } = useSensorWebSocket()
   const seedHistory = useSensorHistory(60)
-  const [historyByPlant, setHistoryByPlant] = useState<Record<number, PlantReading[]>>({})
+  const [history, setHistory] = useState<PlantReading[]>([])
 
-  // Seed from REST on mount, then switch to live WebSocket data
+  // Seed from REST on mount, then hand off to live WebSocket data
   useEffect(() => {
-    if (seedHistory.length === 0 || Object.keys(liveHistory).length > 0) return
-    const grouped: Record<number, PlantReading[]> = {}
-    for (const r of seedHistory) {
-      ;(grouped[r.plant_id] ??= []).push(r)
-    }
-    setHistoryByPlant(grouped)
+    if (seedHistory.length === 0 || (liveHistory[0]?.length ?? 0) > 0) return
+    setHistory(seedHistory.filter((r) => r.plant_id === 0))
   }, [seedHistory, liveHistory])
 
   useEffect(() => {
-    if (Object.keys(liveHistory).length > 0) setHistoryByPlant(liveHistory)
+    if ((liveHistory[0]?.length ?? 0) > 0) setHistory(liveHistory[0])
   }, [liveHistory])
 
-  // Flatten history across all plants for multi-line charts
-  const flatHistory = Object.values(historyByPlant).flat()
+  const latest = history[history.length - 1]
 
-  const outlets = usePowerLatest()
-  const powerHistory = usePowerHistory(60)
+  // Live values: prefer the fresh WS frame, fall back to last DB row
+  const airTemp = frame?.air_temp ?? latest?.air_temp ?? null
+  const humidity = frame?.humidity ?? latest?.humidity ?? null
+  const tds      = frame?.plants?.[0]?.tds ?? latest?.tds ?? null
 
-  const latestByPlant: Record<number, PlantReading> = {}
-  for (let i = 0; i < NUM_PLANTS; i++) {
-    const arr = historyByPlant[i]
-    if (arr?.length) latestByPlant[i] = arr[arr.length - 1]
-  }
-
-  const shared = frame ?? latestByPlant[0]
-  const lastUpdate = shared?.recorded_at
-    ? new Date(shared.recorded_at).toLocaleTimeString()
+  const lastUpdate = (frame ?? latest)?.recorded_at
+    ? new Date((frame ?? latest)!.recorded_at).toLocaleTimeString()
     : null
 
   return (
@@ -59,31 +42,17 @@ export default function App() {
       </header>
 
       <div className="dashboard">
-        <div className="cameras">
-          <CameraFeed src="/api/cameras/picam" label="Pi Camera" />
-          <CameraFeed src="/api/cameras/usb" label="USB Camera" />
-        </div>
-
         <div className="sensor-cards">
-          <SensorCard label="Air Temp" value={shared?.air_temp} unit="°C" />
-          <SensorCard label="Humidity" value={shared?.humidity} unit="%" decimals={0}
-            warn={(v) => v > 80} />
-        </div>
-
-        <div className="plant-grid">
-          {Array.from({ length: NUM_PLANTS }, (_, i) => (
-            <PlantRow key={i} plantId={i} reading={latestByPlant[i]} />
-          ))}
+          <SensorCard label="Air Temp" value={airTemp}  unit="°F"  decimals={1} />
+          <SensorCard label="Humidity" value={humidity} unit="%"   decimals={0} warn={(v) => v > 80} />
+          <SensorCard label="TDS"      value={tds}      unit="ppm" decimals={0} />
         </div>
 
         <div className="charts">
-          <MultiLineChart history={flatHistory} dataKey="ph" label="pH" unit="" numPlants={NUM_PLANTS} />
-          <MultiLineChart history={flatHistory} dataKey="tds" label="TDS" unit="ppm" numPlants={NUM_PLANTS} />
-          <MultiLineChart history={flatHistory} dataKey="water_temp" label="Water Temp" unit="°C" numPlants={NUM_PLANTS} />
-          <MultiLineChart history={flatHistory} dataKey="water_level_cm" label="Water Level" unit="cm" numPlants={NUM_PLANTS} />
+          <SensorChart data={history} dataKey="air_temp" label="Air Temp" unit="°F"  color="#60a5fa" />
+          <SensorChart data={history} dataKey="humidity" label="Humidity" unit="%"   color="#c084fc" />
+          <SensorChart data={history} dataKey="tds"      label="TDS"      unit="ppm" color="#4ade80" />
         </div>
-
-        <PowerStrip outlets={outlets} history={powerHistory} />
       </div>
     </div>
   )

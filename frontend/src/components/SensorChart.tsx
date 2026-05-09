@@ -7,11 +7,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import type { SensorReading } from '../types/sensors'
+import type { PlantReading } from '../types/sensors'
 
 interface SensorChartProps {
-  data: SensorReading[]
-  dataKey: keyof SensorReading
+  data: PlantReading[]
+  dataKey: keyof PlantReading
   label: string
   unit: string
   color?: string
