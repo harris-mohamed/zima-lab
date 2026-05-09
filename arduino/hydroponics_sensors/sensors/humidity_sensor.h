@@ -10,7 +10,7 @@
        STRUCTS
    ---------------------------------------------------------- */
 struct AirReading {
-  float temp_c;    // -1.0 on error
+  float temp_f;    // -1.0 on error
   float humidity;  // -1.0 on error
 };
 

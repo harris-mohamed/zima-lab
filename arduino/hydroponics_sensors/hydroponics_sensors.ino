@@ -67,23 +67,23 @@ void loop() {
 
   AirReading ar = air.read();
 
-  // Build JSON incrementally into a 512-byte buffer.
+  // AVR snprintf does not support %f — use dtostrf for every float value.
   char buf[512];
+  char f[10];
   int  n = 0;
 
-  n += snprintf(buf + n, sizeof(buf) - n,
-    "{\"ts\":%lu,\"at\":%.2f,\"hm\":%.1f",
-    millis() / 1000UL, ar.temp_c, ar.humidity);
+  n += snprintf(buf + n, sizeof(buf) - n, "{\"ts\":%lu", millis() / 1000UL);
+
+  dtostrf(ar.temp_f,  1, 2, f); n += snprintf(buf + n, sizeof(buf) - n, ",\"at\":%s", f);
+  dtostrf(ar.humidity,1, 1, f); n += snprintf(buf + n, sizeof(buf) - n, ",\"hm\":%s", f);
 
   for (int i = 0; i < NUM_PLANTS; i++) {
     float wtemp   = wt_sensors[i]->read();
     float tds_ppm = tds_sensors[i]->read(wtemp > 0 ? wtemp : 25.0f);
 
-    n += snprintf(buf + n, sizeof(buf) - n,
-      ",\"tds_%d\":%.1f,\"wt_%d\":%.2f,\"wl_%d\":%.1f",
-      i, tds_ppm,
-      i, wtemp,
-      i, wl_sensors[i]->read());
+    dtostrf(tds_ppm,           1, 1, f); n += snprintf(buf + n, sizeof(buf) - n, ",\"tds_%d\":%s", i, f);
+    dtostrf(wtemp,             1, 2, f); n += snprintf(buf + n, sizeof(buf) - n, ",\"wt_%d\":%s",  i, f);
+    dtostrf(wl_sensors[i]->read(), 1, 1, f); n += snprintf(buf + n, sizeof(buf) - n, ",\"wl_%d\":%s",  i, f);
   }
 
   n += snprintf(buf + n, sizeof(buf) - n, "}");
