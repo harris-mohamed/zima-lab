@@ -11,6 +11,7 @@ from api.websocket import router as ws_router
 from broadcast.hub import hub
 from db.database import AsyncSessionLocal, engine
 from db.models import Base
+from camera.snapshot import run_snapshot_task
 from influx.writer import close as close_influx
 from kasa.poller import run_kasa_poller
 from serial_reader.reader import run_serial_reader
@@ -25,16 +26,14 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    serial_task = asyncio.create_task(
-        run_serial_reader(AsyncSessionLocal, hub),
-        name="serial-reader",
-    )
-    kasa_task = asyncio.create_task(run_kasa_poller(), name="kasa-poller")
-    logger.info("Serial reader and Kasa poller tasks started")
+    serial_task   = asyncio.create_task(run_serial_reader(AsyncSessionLocal, hub), name="serial-reader")
+    kasa_task     = asyncio.create_task(run_kasa_poller(),   name="kasa-poller")
+    snapshot_task = asyncio.create_task(run_snapshot_task(), name="snapshot")
+    logger.info("Serial reader, Kasa poller, and snapshot tasks started")
 
     yield
 
-    for task in (serial_task, kasa_task):
+    for task in (serial_task, kasa_task, snapshot_task):
         task.cancel()
         try:
             await task
