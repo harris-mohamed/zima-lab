@@ -2,7 +2,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 
-from kasa import SmartStrip
+from kasa import Device, Discover, Module
 
 from config.settings import settings
 from influx.writer import OutletData, write_outlets
@@ -15,27 +15,31 @@ async def run_kasa_poller() -> None:
         logger.info("KASA_HOST not configured — skipping Kasa poller")
         return
 
-    strip: SmartStrip | None = None
+    device: Device | None = None
 
     while True:
         try:
-            if strip is None:
-                strip = SmartStrip(settings.kasa_host)
+            if device is None:
+                device = await Discover.discover_single(
+                    settings.kasa_host,
+                    username=settings.kasa_username,
+                    password=settings.kasa_password,
+                )
 
-            await strip.update()
+            await device.update()
             ts = datetime.now(timezone.utc)
 
             outlets = [
                 OutletData(
                     outlet_id=i,
-                    outlet_name=plug.alias or f"Outlet {i}",
-                    watts=float(plug.emeter_realtime.power or 0),
-                    voltage=float(plug.emeter_realtime.voltage or 0),
-                    current_a=float(plug.emeter_realtime.current or 0),
-                    total_kwh=float(plug.emeter_realtime.total or 0),
+                    outlet_name=child.alias or f"Outlet {i}",
+                    watts=float(child.modules[Module.Energy].current_consumption or 0),
+                    voltage=float(child.modules[Module.Energy].voltage or 0),
+                    current_a=float(child.modules[Module.Energy].current or 0),
+                    total_kwh=float(child.modules[Module.Energy].consumption_total or 0),
                     ts=ts,
                 )
-                for i, plug in enumerate(strip.children)
+                for i, child in enumerate(device.children)
             ]
 
             await write_outlets(outlets)
@@ -45,7 +49,7 @@ async def run_kasa_poller() -> None:
             raise
         except Exception as exc:
             logger.warning("Kasa poll error: %s — retrying in 30s", exc)
-            strip = None
+            device = None
             await asyncio.sleep(30)
             continue
 

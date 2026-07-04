@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     usb_cam_index: int = 0
 
     kasa_host: str = ""
+    kasa_username: str = ""
+    kasa_password: str = ""
     kasa_poll_interval: int = 10  # seconds
 
     influx_url: str = "http://localhost:8086"
