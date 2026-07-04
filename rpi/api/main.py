@@ -13,7 +13,7 @@ from db.database import AsyncSessionLocal, engine
 from db.models import Base
 from camera.snapshot import run_snapshot_task
 from influx.writer import close as close_influx
-from kasa.poller import run_kasa_poller
+from kasa_poller.poller import run_kasa_poller
 from serial_reader.reader import run_serial_reader
 
 logger = logging.getLogger(__name__)
