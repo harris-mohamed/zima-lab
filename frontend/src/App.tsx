@@ -2,6 +2,7 @@ import './styles/App.css'
 import { useEffect, useState } from 'react'
 import { SensorCard } from './components/SensorCard'
 import { SensorChart } from './components/SensorChart'
+import { CameraFeed } from './components/CameraFeed'
 import { useSensorWebSocket } from './hooks/useSensorWebSocket'
 import { useSensorHistory } from './hooks/useSensorHistory'
 import type { PlantReading } from './types/sensors'
@@ -52,6 +53,11 @@ export default function App() {
           <SensorChart data={history} dataKey="air_temp" label="Air Temp" unit="°F"  color="#60a5fa" />
           <SensorChart data={history} dataKey="humidity" label="Humidity" unit="%"   color="#c084fc" />
           <SensorChart data={history} dataKey="tds"      label="TDS"      unit="ppm" color="#4ade80" />
+        </div>
+
+        <div className="cameras">
+          <CameraFeed src="/api/cameras/picam" label="Pi Camera" />
+          <CameraFeed src="/api/cameras/usb"   label="USB Webcam" />
         </div>
       </div>
     </div>

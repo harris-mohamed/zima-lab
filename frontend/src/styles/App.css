@@ -163,6 +163,13 @@ body {
   flex-wrap: wrap;
 }
 
+/* Cameras row */
+.cameras {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
 /* ── Camera Card ─────────────────────────────────────── */
 .camera-card {
   background: var(--surface);
