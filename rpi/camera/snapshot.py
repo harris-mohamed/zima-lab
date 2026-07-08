@@ -5,6 +5,7 @@ from pathlib import Path
 
 import cv2
 
+from camera.lock import picam_lock
 from config.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ async def run_snapshot_task() -> None:
     loop = asyncio.get_running_loop()
     while True:
         ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
-        await loop.run_in_executor(None, capture_usb,   ts)
-        await loop.run_in_executor(None, capture_picam, ts)
+        await loop.run_in_executor(None, capture_usb, ts)
+        async with picam_lock:
+            await loop.run_in_executor(None, capture_picam, ts)
         await asyncio.sleep(INTERVAL_S)
