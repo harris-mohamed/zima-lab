@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 async def usb_mjpeg_frames() -> AsyncGenerator[bytes, None]:
     """Yield MJPEG frames from the USB webcam using OpenCV."""
-    cap = cv2.VideoCapture(settings.usb_cam_index)
+    cap = cv2.VideoCapture(settings.usb_cam_device)
     if not cap.isOpened():
-        logger.error("Could not open USB camera at index %d", settings.usb_cam_index)
+        logger.error("Could not open USB camera at %s", settings.usb_cam_device)
         return
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)

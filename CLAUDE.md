@@ -125,4 +125,4 @@ Frontend
 | `DATABASE_URL` | `postgresql+asyncpg://zima:password@localhost:5432/zimalab` | Async SQLAlchemy URL |
 | `API_HOST` | `0.0.0.0` | FastAPI bind host |
 | `API_PORT` | `8000` | FastAPI bind port |
-| `USB_CAM_INDEX` | `0` | OpenCV camera index |
+| `USB_CAM_DEVICE` | `0` | OpenCV camera source — prefer a stable `/dev/v4l/by-id/...` symlink over a numeric index, since `/dev/videoN` assignment isn't stable across reboots/replugs |

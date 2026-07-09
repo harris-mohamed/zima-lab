@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://zima:password@localhost:5432/zimalab"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    usb_cam_index: int = 0
+    usb_cam_device: str = "0"
 
     kasa_host: str = ""
     kasa_username: str = ""

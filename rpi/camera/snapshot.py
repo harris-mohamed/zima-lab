@@ -22,7 +22,7 @@ def _rotate(source: str) -> None:
 
 
 def capture_usb(ts: str) -> None:
-    cap = cv2.VideoCapture(settings.usb_cam_index)
+    cap = cv2.VideoCapture(settings.usb_cam_device)
     if not cap.isOpened():
         logger.warning("Snapshot: USB camera unavailable (stream may be active)")
         return
