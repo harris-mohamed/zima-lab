@@ -15,6 +15,13 @@ INTERVAL_S   = 30 * 60   # 30 minutes
 KEEP_LAST    = 48         # 24 hours of snapshots per source
 
 
+def _camera_source() -> int | str:
+    device = settings.usb_cam_device
+    if device.isdigit():
+        return int(device)
+    return device
+
+
 def _rotate(source: str) -> None:
     files = sorted(SNAPSHOT_DIR.glob(f"{source}_*.jpg"))
     for f in files[:-KEEP_LAST]:
@@ -22,14 +29,17 @@ def _rotate(source: str) -> None:
 
 
 def capture_usb(ts: str) -> None:
-    cap = cv2.VideoCapture(settings.usb_cam_device)
+    cap = cv2.VideoCapture(_camera_source())
     if not cap.isOpened():
         logger.warning("Snapshot: USB camera unavailable (stream may be active)")
+        cap.release()
         return
-    for _ in range(5):   # warmup frames so exposure settles
-        cap.read()
-    ret, frame = cap.read()
-    cap.release()
+    try:
+        for _ in range(5):   # warmup frames so exposure settles
+            cap.read()
+        ret, frame = cap.read()
+    finally:
+        cap.release()
     if not ret:
         logger.warning("Snapshot: USB camera read failed")
         return

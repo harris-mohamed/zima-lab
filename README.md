@@ -45,7 +45,23 @@ uv run alembic upgrade head
 uv run uvicorn api.main:app --host 0.0.0.0 --port 8000
 ```
 
-### 4. Open the dashboard
+### 4. Start both backend and frontend for development
+
+From the repo root:
+
+```bash
+bash scripts/dev.sh
+```
+
+The script starts FastAPI on `http://localhost:8000` and Vite on `http://localhost:5173`, then shuts both down when you press Ctrl+C.
+
+You can override the bind host/ports:
+
+```bash
+BACKEND_PORT=8001 FRONTEND_PORT=5174 bash scripts/dev.sh
+```
+
+### 5. Open the dashboard
 
 On the local monitor, navigate to `http://localhost:8000` (production build served by FastAPI) or run the dev server:
 

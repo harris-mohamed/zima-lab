@@ -176,6 +176,11 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
+  position: relative;
+}
+
+.camera-card--offline {
+  border-color: var(--yellow);
 }
 
 .camera-card__label {
@@ -192,4 +197,13 @@ body {
   aspect-ratio: 16 / 9;
   object-fit: cover;
   background: #0f172a;
+}
+
+.camera-card__status {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  color: var(--yellow);
+  font-size: 0.75rem;
+  font-weight: 600;
 }

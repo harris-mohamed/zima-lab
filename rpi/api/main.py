@@ -52,5 +52,11 @@ app.include_router(export.router)
 app.include_router(power.router)
 app.include_router(ws_router)
 
+
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}
+
+
 if FRONTEND_DIR.exists():
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
