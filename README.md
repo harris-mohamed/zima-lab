@@ -71,6 +71,32 @@ npm install
 npm run dev                 # opens http://localhost:5173, proxies API to :8000
 ```
 
+## Deploy on the Raspberry Pi
+
+The production deployment runs the API and built dashboard as one systemd
+service. From the repository root on the Pi:
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+The script installs dependencies, builds the frontend, applies database
+migrations, installs `zimalab.service`, and restarts it. It deploys the current
+checkout; pull or copy the desired code before running it.
+
+Useful service commands:
+
+```bash
+sudo systemctl status zimalab
+sudo systemctl restart zimalab
+journalctl -u zimalab -f
+journalctl -u zimalab --since today
+```
+
+The service starts automatically at boot and restarts after failures. The
+dashboard is available at `http://10.0.0.123:8000`.
+
 ## Data Export / ML
 
 ```bash

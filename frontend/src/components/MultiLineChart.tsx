@@ -22,7 +22,7 @@ interface MultiLineChartProps {
 
 export function MultiLineChart({ history, dataKey, label, unit, numPlants }: MultiLineChartProps) {
   // Pivot: one entry per timestamp, keyed by plant_id
-  const byTime = new Map<string, Record<string, number | null>>()
+  const byTime = new Map<string, Record<string, string | number | null>>()
   for (const r of history) {
     const time = new Date(r.recorded_at).toLocaleTimeString()
     if (!byTime.has(time)) byTime.set(time, { time })
