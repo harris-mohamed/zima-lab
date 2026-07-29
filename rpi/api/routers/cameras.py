@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
@@ -34,11 +33,11 @@ async def list_snapshots():
     result = []
     for f in files:
         source = f.name.split("_")[0]
-        ts_str = f.stem[len(source) + 1:]   # strip "picam_" / "usb_"
+        ts_str = f.stem[len(source) + 1 :]  # strip "picam_" / "usb_"
         try:
-            taken_at = datetime.strptime(ts_str, "%Y%m%dT%H%M%S").replace(
-                tzinfo=timezone.utc
-            ).isoformat()
+            taken_at = (
+                datetime.strptime(ts_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc).isoformat()
+            )
         except ValueError:
             taken_at = None
         result.append({"filename": f.name, "source": source, "taken_at": taken_at})
