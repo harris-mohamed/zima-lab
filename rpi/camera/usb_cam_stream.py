@@ -13,6 +13,7 @@ FPS = 5
 FRAME_INTERVAL_S = 1 / FPS
 MAX_READ_FAILURES = 10
 RETRY_DELAY_S = 5
+WARMUP_FRAMES = 10
 
 
 def _camera_source() -> int | str:
@@ -28,7 +29,11 @@ def _open_camera():
 
     capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    capture.set(cv2.CAP_PROP_FPS, FPS)
+
+    # Let UVC cameras negotiate their native frame rate. Some webcams, including
+    # C270 variants, return black frames when forced to an unsupported low FPS.
+    for _ in range(WARMUP_FRAMES):
+        capture.read()
     return capture
 
 
