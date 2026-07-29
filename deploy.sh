@@ -32,11 +32,10 @@ echo "Installing frontend dependencies and building the production dashboard..."
 npm --prefix "$ROOT/frontend" ci
 npm --prefix "$ROOT/frontend" run build
 
-echo "Installing backend dependencies and applying database migrations..."
+echo "Installing camera backend dependencies..."
 (
   cd "$ROOT/rpi"
   uv sync
-  uv run alembic upgrade head
 )
 
 # The replacement values are filesystem paths/usernames and cannot contain "|".
