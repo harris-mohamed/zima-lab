@@ -9,12 +9,18 @@ from camera.usb_cam_stream import usb_mjpeg_frames
 
 router = APIRouter(prefix="/api/cameras", tags=["cameras"])
 
+STREAM_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "Pragma": "no-cache",
+}
+
 
 @router.get("/picam")
 async def stream_picam():
     return StreamingResponse(
         picam_mjpeg_frames(),
         media_type="multipart/x-mixed-replace; boundary=frame",
+        headers=STREAM_HEADERS,
     )
 
 
@@ -23,6 +29,7 @@ async def stream_usb():
     return StreamingResponse(
         usb_mjpeg_frames(),
         media_type="multipart/x-mixed-replace; boundary=frame",
+        headers=STREAM_HEADERS,
     )
 
 

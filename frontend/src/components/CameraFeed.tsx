@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+
+const RECONNECT_INTERVAL_MS = 5 * 60 * 1000
+const ERROR_RETRY_DELAY_MS = 5 * 1000
 
 interface CameraFeedProps {
   src: string
@@ -7,8 +10,42 @@ interface CameraFeedProps {
 
 export function CameraFeed({ src, label }: CameraFeedProps) {
   const [connection, setConnection] = useState<'connecting' | 'live' | 'offline'>('connecting')
-  const [attempt, setAttempt] = useState(0)
+  const [attempt, setAttempt] = useState(() => Date.now())
   const streamUrl = `${src}?attempt=${attempt}`
+
+  const reconnect = useCallback(() => {
+    setConnection('connecting')
+    setAttempt(Date.now())
+  }, [])
+
+  useEffect(() => {
+    const reconnectIfVisible = () => {
+      if (document.visibilityState === 'visible') {
+        reconnect()
+      }
+    }
+
+    const interval = window.setInterval(reconnectIfVisible, RECONNECT_INTERVAL_MS)
+    window.addEventListener('focus', reconnect)
+    window.addEventListener('online', reconnect)
+    document.addEventListener('visibilitychange', reconnectIfVisible)
+
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', reconnect)
+      window.removeEventListener('online', reconnect)
+      document.removeEventListener('visibilitychange', reconnectIfVisible)
+    }
+  }, [reconnect])
+
+  useEffect(() => {
+    if (connection !== 'offline') {
+      return
+    }
+
+    const timeout = window.setTimeout(reconnect, ERROR_RETRY_DELAY_MS)
+    return () => window.clearTimeout(timeout)
+  }, [connection, reconnect])
 
   return (
     <article className="camera-card">
@@ -34,10 +71,7 @@ export function CameraFeed({ src, label }: CameraFeedProps) {
               <button
                 className="button"
                 type="button"
-                onClick={() => {
-                  setConnection('connecting')
-                  setAttempt((current) => current + 1)
-                }}
+                onClick={reconnect}
               >
                 Reconnect
               </button>
