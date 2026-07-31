@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
@@ -10,12 +9,18 @@ from camera.usb_cam_stream import usb_mjpeg_frames
 
 router = APIRouter(prefix="/api/cameras", tags=["cameras"])
 
+STREAM_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "Pragma": "no-cache",
+}
+
 
 @router.get("/picam")
 async def stream_picam():
     return StreamingResponse(
         picam_mjpeg_frames(),
         media_type="multipart/x-mixed-replace; boundary=frame",
+        headers=STREAM_HEADERS,
     )
 
 
@@ -24,6 +29,7 @@ async def stream_usb():
     return StreamingResponse(
         usb_mjpeg_frames(),
         media_type="multipart/x-mixed-replace; boundary=frame",
+        headers=STREAM_HEADERS,
     )
 
 
@@ -34,11 +40,11 @@ async def list_snapshots():
     result = []
     for f in files:
         source = f.name.split("_")[0]
-        ts_str = f.stem[len(source) + 1:]   # strip "picam_" / "usb_"
+        ts_str = f.stem[len(source) + 1 :]  # strip "picam_" / "usb_"
         try:
-            taken_at = datetime.strptime(ts_str, "%Y%m%dT%H%M%S").replace(
-                tzinfo=timezone.utc
-            ).isoformat()
+            taken_at = (
+                datetime.strptime(ts_str, "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc).isoformat()
+            )
         except ValueError:
             taken_at = None
         result.append({"filename": f.name, "source": source, "taken_at": taken_at})

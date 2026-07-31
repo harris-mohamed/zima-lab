@@ -1,4 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+
+const RECONNECT_INTERVAL_MS = 5 * 60 * 1000
+const ERROR_RETRY_DELAY_MS = 5 * 1000
 
 interface CameraFeedProps {
   src: string
@@ -6,47 +9,76 @@ interface CameraFeedProps {
 }
 
 export function CameraFeed({ src, label }: CameraFeedProps) {
-  const imgRef = useRef<HTMLImageElement>(null)
-  const retryRef = useRef<number | null>(null)
-  const backoffRef = useRef(2_000)
-  const [offline, setOffline] = useState(false)
+  const [connection, setConnection] = useState<'connecting' | 'live' | 'offline'>('connecting')
+  const [attempt, setAttempt] = useState(() => Date.now())
+  const streamUrl = `${src}?attempt=${attempt}`
 
-  const handleError = () => {
-    setOffline(true)
-    if (retryRef.current !== null) return
-
-    retryRef.current = window.setTimeout(() => {
-      retryRef.current = null
-      if (imgRef.current) {
-        imgRef.current.src = `${src}?t=${Date.now()}`
-      }
-      backoffRef.current = Math.min(backoffRef.current * 2, 60_000)
-    }, backoffRef.current)
-  }
-
-  const handleLoad = () => {
-    setOffline(false)
-    backoffRef.current = 2_000
-  }
-
-  useEffect(() => {
-    return () => {
-      if (retryRef.current !== null) window.clearTimeout(retryRef.current)
-    }
+  const reconnect = useCallback(() => {
+    setConnection('connecting')
+    setAttempt(Date.now())
   }, [])
 
+  useEffect(() => {
+    const reconnectIfVisible = () => {
+      if (document.visibilityState === 'visible') {
+        reconnect()
+      }
+    }
+
+    const interval = window.setInterval(reconnectIfVisible, RECONNECT_INTERVAL_MS)
+    window.addEventListener('focus', reconnect)
+    window.addEventListener('online', reconnect)
+    document.addEventListener('visibilitychange', reconnectIfVisible)
+
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', reconnect)
+      window.removeEventListener('online', reconnect)
+      document.removeEventListener('visibilitychange', reconnectIfVisible)
+    }
+  }, [reconnect])
+
+  useEffect(() => {
+    if (connection !== 'offline') {
+      return
+    }
+
+    const timeout = window.setTimeout(reconnect, ERROR_RETRY_DELAY_MS)
+    return () => window.clearTimeout(timeout)
+  }, [connection, reconnect])
+
   return (
-    <div className={`camera-card${offline ? ' camera-card--offline' : ''}`}>
-      <h3 className="camera-card__label">{label}</h3>
-      <img
-        ref={imgRef}
-        src={src}
-        alt={label}
-        className="camera-card__img"
-        onError={handleError}
-        onLoad={handleLoad}
-      />
-      {offline && <div className="camera-card__status">Camera unavailable</div>}
-    </div>
+    <article className="camera-card">
+      <div className="camera-card__header">
+        <h3>{label}</h3>
+        <span className={`camera-state camera-state--${connection}`}>
+          <span aria-hidden="true" />
+          {connection === 'live' ? 'Live' : connection === 'offline' ? 'Unavailable' : 'Connecting'}
+        </span>
+      </div>
+      <div className="camera-card__viewport">
+        <img
+          key={streamUrl}
+          src={streamUrl}
+          alt={`${label} live feed`}
+          onLoad={() => setConnection('live')}
+          onError={() => setConnection('offline')}
+        />
+        {connection !== 'live' && (
+          <div className="camera-card__fallback">
+            <p>{connection === 'offline' ? 'Camera feed is unavailable' : 'Opening camera feed…'}</p>
+            {connection === 'offline' && (
+              <button
+                className="button"
+                type="button"
+                onClick={reconnect}
+              >
+                Reconnect
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </article>
   )
 }

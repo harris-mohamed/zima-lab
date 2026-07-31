@@ -1,50 +1,67 @@
 import asyncio
-import io
 import logging
-from typing import AsyncGenerator
+from time import monotonic
 
-from camera.lock import picam_lock
+import cv2
+
+from camera.frame_hub import picam_hub
 
 logger = logging.getLogger(__name__)
 
+FPS = 5
+FRAME_INTERVAL_S = 1 / FPS
+RETRY_DELAY_S = 5
 
-async def picam_mjpeg_frames() -> AsyncGenerator[bytes, None]:
-    """Yield MJPEG frames from the Pi Camera Module using picamera2."""
+
+def _capture_jpeg(camera) -> bytes | None:
+    frame = camera.capture_array("main")
+    ok, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+    return jpeg.tobytes() if ok else None
+
+
+async def run_picam_capture() -> None:
+    """Open the Pi camera once and continually publish its latest JPEG."""
     try:
         from picamera2 import Picamera2
-        from picamera2.encoders import MJPEGEncoder
-        from picamera2.outputs import FileOutput
     except ImportError:
-        logger.warning("picamera2 not available; Pi camera stream disabled")
+        logger.error("picamera2 not available; Pi camera capture disabled")
         return
 
-    async with picam_lock:
-        cam = Picamera2()
-        recording = False
+    while True:
+        camera = None
         try:
-            config = cam.create_video_configuration(main={"size": (1280, 720)})
-            cam.configure(config)
-
-            output = io.BytesIO()
-            encoder = MJPEGEncoder()
-            file_output = FileOutput(output)
-            cam.start_recording(encoder, file_output)
-            recording = True
+            camera = Picamera2()
+            config = camera.create_video_configuration(
+                main={"size": (1280, 720), "format": "RGB888"},
+                controls={"FrameRate": float(FPS)},
+            )
+            camera.configure(config)
+            camera.start()
+            logger.info("Pi camera capture started at 1280x720, %d FPS", FPS)
 
             while True:
-                output.seek(0)
-                frame = output.read()
-                if frame:
-                    output.seek(0)
-                    output.truncate()
-                    yield (
-                        b"--frame\r\n"
-                        b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
-                    )
-                await asyncio.sleep(1 / 15)
-        except Exception as exc:
-            logger.warning("Pi camera stream failed (%s) — camera may be in use", exc)
+                started = monotonic()
+                jpeg = await asyncio.to_thread(_capture_jpeg, camera)
+                if jpeg is not None:
+                    await picam_hub.publish(jpeg)
+                elapsed = monotonic() - started
+                await asyncio.sleep(max(0, FRAME_INTERVAL_S - elapsed))
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Pi camera capture failed; retrying in %d seconds", RETRY_DELAY_S)
         finally:
-            if recording:
-                cam.stop_recording()
-            cam.close()
+            if camera is not None:
+                try:
+                    await asyncio.to_thread(camera.stop)
+                except Exception:
+                    logger.debug("Pi camera was already stopped", exc_info=True)
+                try:
+                    await asyncio.to_thread(camera.close)
+                except Exception:
+                    logger.debug("Pi camera close failed", exc_info=True)
+        await asyncio.sleep(RETRY_DELAY_S)
+
+
+def picam_mjpeg_frames():
+    return picam_hub.mjpeg_frames()

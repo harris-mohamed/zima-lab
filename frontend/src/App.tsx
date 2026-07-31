@@ -1,65 +1,172 @@
-import './styles/App.css'
-import { useEffect, useState } from 'react'
-import { SensorCard } from './components/SensorCard'
-import { SensorChart } from './components/SensorChart'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CameraFeed } from './components/CameraFeed'
-import { useSensorWebSocket } from './hooks/useSensorWebSocket'
-import { useSensorHistory } from './hooks/useSensorHistory'
-import type { PlantReading } from './types/sensors'
+import './styles/App.css'
+
+type CameraSource = 'picam' | 'usb'
+
+interface Snapshot {
+  filename: string
+  source: CameraSource
+  taken_at: string | null
+}
+
+const CAMERA_NAMES: Record<CameraSource, string> = {
+  picam: 'Pi Camera',
+  usb: 'USB Camera',
+}
+
+function formatTimestamp(value: string | null) {
+  if (!value) return 'Unknown time'
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
+async function fetchSnapshots() {
+  const response = await fetch('/api/cameras/snapshots')
+  if (!response.ok) throw new Error(`Archive request failed: ${response.status}`)
+  return (await response.json()) as Snapshot[]
+}
 
 export default function App() {
-  const { frame, historyByPlant: liveHistory } = useSensorWebSocket()
-  const seedHistory = useSensorHistory(60)
-  const [history, setHistory] = useState<PlantReading[]>([])
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([])
+  const [archiveStatus, setArchiveStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [activeSource, setActiveSource] = useState<CameraSource | 'all'>('all')
+  const [selected, setSelected] = useState<Snapshot | null>(null)
 
-  // Seed from REST on mount, then hand off to live WebSocket data
+  const loadSnapshots = useCallback(async () => {
+    try {
+      setSnapshots(await fetchSnapshots())
+      setArchiveStatus('ready')
+    } catch {
+      setArchiveStatus('error')
+    }
+  }, [])
+
   useEffect(() => {
-    if (seedHistory.length === 0 || (liveHistory[0]?.length ?? 0) > 0) return
-    setHistory(seedHistory.filter((r) => r.plant_id === 0))
-  }, [seedHistory, liveHistory])
+    fetchSnapshots()
+      .then((data) => {
+        setSnapshots(data)
+        setArchiveStatus('ready')
+      })
+      .catch(() => setArchiveStatus('error'))
+  }, [])
 
-  useEffect(() => {
-    if ((liveHistory[0]?.length ?? 0) > 0) setHistory(liveHistory[0])
-  }, [liveHistory])
-
-  const latest = history[history.length - 1]
-
-  // Live values: prefer the fresh WS frame, fall back to last DB row
-  const airTemp = frame?.air_temp ?? latest?.air_temp ?? null
-  const humidity = frame?.humidity ?? latest?.humidity ?? null
-  const tds      = frame?.plants?.[0]?.tds ?? latest?.tds ?? null
-
-  const lastUpdate = (frame ?? latest)?.recorded_at
-    ? new Date((frame ?? latest)!.recorded_at).toLocaleTimeString()
-    : null
+  const visibleSnapshots = useMemo(
+    () => snapshots.filter((snapshot) => activeSource === 'all' || snapshot.source === activeSource),
+    [activeSource, snapshots],
+  )
 
   return (
-    <div className="app">
-      <header className="app__header">
-        <h1 className="app__title">Zima Lab</h1>
-        <span className="app__status">
-          {lastUpdate ? `Last update: ${lastUpdate}` : 'Connecting…'}
+    <main className="site-shell">
+      <header className="site-header">
+        <div>
+          <p className="eyebrow">Camera monitor</p>
+          <h1>Zima Lab</h1>
+        </div>
+        <span className="system-badge">
+          <span aria-hidden="true" />
+          Local system
         </span>
       </header>
 
-      <div className="dashboard">
-        <div className="sensor-cards">
-          <SensorCard label="Air Temp" value={airTemp}  unit="°F"  decimals={1} />
-          <SensorCard label="Humidity" value={humidity} unit="%"   decimals={0} warn={(v) => v > 80} />
-          <SensorCard label="TDS"      value={tds}      unit="ppm" decimals={0} />
+      <section aria-labelledby="live-heading">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Now</p>
+            <h2 id="live-heading">Live cameras</h2>
+          </div>
         </div>
-
-        <div className="charts">
-          <SensorChart data={history} dataKey="air_temp" label="Air Temp" unit="°F"  color="#60a5fa" />
-          <SensorChart data={history} dataKey="humidity" label="Humidity" unit="%"   color="#c084fc" />
-          <SensorChart data={history} dataKey="tds"      label="TDS"      unit="ppm" color="#4ade80" />
-        </div>
-
-        <div className="cameras">
+        <div className="live-grid">
           <CameraFeed src="/api/cameras/picam" label="Pi Camera" />
-          <CameraFeed src="/api/cameras/usb"   label="USB Webcam" />
+          <CameraFeed src="/api/cameras/usb" label="USB Camera" />
         </div>
-      </div>
-    </div>
+      </section>
+
+      <section aria-labelledby="archive-heading">
+        <div className="section-heading archive-heading">
+          <div>
+            <p className="eyebrow">Last 24 hours</p>
+            <h2 id="archive-heading">Archive</h2>
+          </div>
+          <button className="button button--secondary" type="button" onClick={() => void loadSnapshots()}>
+            Refresh archive
+          </button>
+        </div>
+
+        <div className="archive-controls" aria-label="Filter archive">
+          {(['all', 'picam', 'usb'] as const).map((source) => (
+            <button
+              className={`filter${activeSource === source ? ' filter--active' : ''}`}
+              type="button"
+              key={source}
+              onClick={() => setActiveSource(source)}
+            >
+              {source === 'all' ? 'All cameras' : CAMERA_NAMES[source]}
+            </button>
+          ))}
+          {archiveStatus === 'ready' && (
+            <span className="archive-count">{visibleSnapshots.length} images</span>
+          )}
+        </div>
+
+        {archiveStatus === 'loading' && <p className="archive-message">Loading archive…</p>}
+        {archiveStatus === 'error' && (
+          <div className="archive-message archive-message--error">
+            <p>The archive could not be loaded.</p>
+            <button className="button button--secondary" type="button" onClick={() => void loadSnapshots()}>
+              Try again
+            </button>
+          </div>
+        )}
+        {archiveStatus === 'ready' && visibleSnapshots.length === 0 && (
+          <p className="archive-message">No archived images yet. The first images appear after capture starts.</p>
+        )}
+        {archiveStatus === 'ready' && visibleSnapshots.length > 0 && (
+          <div className="archive-grid">
+            {visibleSnapshots.map((snapshot) => (
+              <button
+                className="snapshot"
+                type="button"
+                key={snapshot.filename}
+                onClick={() => setSelected(snapshot)}
+              >
+                <img
+                  src={`/api/cameras/snapshots/${encodeURIComponent(snapshot.filename)}`}
+                  alt={`${CAMERA_NAMES[snapshot.source]} at ${formatTimestamp(snapshot.taken_at)}`}
+                  loading="lazy"
+                />
+                <span>
+                  <strong>{CAMERA_NAMES[snapshot.source]}</strong>
+                  <time dateTime={snapshot.taken_at ?? undefined}>{formatTimestamp(snapshot.taken_at)}</time>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {selected && (
+        <div className="lightbox" role="dialog" aria-modal="true" aria-label="Archived camera image">
+          <button className="lightbox__backdrop" type="button" onClick={() => setSelected(null)} aria-label="Close" />
+          <div className="lightbox__panel">
+            <div className="lightbox__header">
+              <div>
+                <strong>{CAMERA_NAMES[selected.source]}</strong>
+                <time dateTime={selected.taken_at ?? undefined}>{formatTimestamp(selected.taken_at)}</time>
+              </div>
+              <button className="button button--secondary" type="button" onClick={() => setSelected(null)}>
+                Close
+              </button>
+            </div>
+            <img
+              src={`/api/cameras/snapshots/${encodeURIComponent(selected.filename)}`}
+              alt={`${CAMERA_NAMES[selected.source]} at ${formatTimestamp(selected.taken_at)}`}
+            />
+          </div>
+        </div>
+      )}
+    </main>
   )
 }
